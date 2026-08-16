@@ -106,9 +106,6 @@ func (s *IrrigationService) ExecuteIrrigation(ctx context.Context, planID uint) 
 	}
 	const cycles = 5
 	for i := 0; i < cycles; i++ {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
 		time.Sleep(20 * time.Millisecond) // 模拟单个周期的灌溉动作
 	}
 	plan.Status = "completed"
