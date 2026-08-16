@@ -106,5 +106,5 @@ func (s *IrrigationService) ExecuteIrrigation(ctx context.Context, planID uint) 
 		time.Sleep(20 * time.Millisecond) // 模拟单个周期的灌溉动作
 	}
 	plan.Status = "completed"
-	return s.db.WithContext(ctx).Save(&plan).Error
+	return s.db.Save(&plan).Error
 }
