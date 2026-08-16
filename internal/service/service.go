@@ -29,7 +29,7 @@ func (s *IrrigationService) GetZoneByID(ctx context.Context, id uint) (*model.Zo
 	result := s.db.WithContext(ctx).First(&zone, id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, ErrZoneNotFound
+			return nil, nil
 		}
 		return nil, result.Error
 	}
