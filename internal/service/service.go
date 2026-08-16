@@ -92,14 +92,18 @@ func (s *IrrigationService) GetLatestReading(zoneID uint) *model.SensorReading {
 	return s.latestReadings[zoneID]
 }
 
-// ExecuteIrrigation 执行灌溉
+// ExecuteIrrigation 执行灌溉（模拟 5 个灌溉周期，周期之间检查 ctx 是否取消）
 func (s *IrrigationService) ExecuteIrrigation(ctx context.Context, planID uint) error {
 	var plan model.IrrigationPlan
 	if err := s.db.WithContext(ctx).First(&plan, planID).Error; err != nil {
 		return err
 	}
-	if err := ctx.Err(); err != nil {
-		return err
+	const cycles = 5
+	for i := 0; i < cycles; i++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		time.Sleep(20 * time.Millisecond) // 模拟单个周期的灌溉动作
 	}
 	plan.Status = "completed"
 	return s.db.WithContext(ctx).Save(&plan).Error
