@@ -43,7 +43,7 @@ func (s *IrrigationService) GetZoneByID(ctx context.Context, id uint) (*model.Zo
 func (s *IrrigationService) ScheduleIrrigation(ctx context.Context, zoneID uint, volume float64, when time.Time) (*model.IrrigationPlan, error) {
 	zone, err := s.GetZoneByID(ctx, zoneID)
 	if err != nil {
-		return nil, fmt.Errorf("schedule irrigation: %v", err)
+		return nil, fmt.Errorf("schedule irrigation: %w", err)
 	}
 	if !zone.Active {
 		return nil, ErrZoneNotFound
