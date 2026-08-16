@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -20,6 +21,7 @@ type IrrigationService struct {
 	db *gorm.DB
 	// 区域最新读数缓存（zoneID -> reading）
 	latestReadings map[uint]*model.SensorReading
+	mu             sync.RWMutex
 }
 
 func NewIrrigationService(db *gorm.DB) *IrrigationService {
@@ -83,12 +85,16 @@ func (s *IrrigationService) RecordReading(ctx context.Context, zoneID uint, mois
 	if err := s.db.WithContext(ctx).Create(reading).Error; err != nil {
 		return nil, err
 	}
+	s.mu.Lock()
 	s.latestReadings[zoneID] = reading
+	s.mu.Unlock()
 	return reading, nil
 }
 
 // GetLatestReading 获取区域最新读数
 func (s *IrrigationService) GetLatestReading(zoneID uint) *model.SensorReading {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.latestReadings[zoneID]
 }
 
