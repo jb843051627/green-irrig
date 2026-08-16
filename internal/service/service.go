@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -17,10 +18,12 @@ var (
 // IrrigationService 灌溉服务
 type IrrigationService struct {
 	db *gorm.DB
+	// 区域最新读数缓存（zoneID -> reading）
+	latestReadings map[uint]*model.SensorReading
 }
 
 func NewIrrigationService(db *gorm.DB) *IrrigationService {
-	return &IrrigationService{db: db}
+	return &IrrigationService{db: db, latestReadings: make(map[uint]*model.SensorReading)}
 }
 
 // GetZoneByID 按 ID 查询区域
@@ -40,7 +43,7 @@ func (s *IrrigationService) GetZoneByID(ctx context.Context, id uint) (*model.Zo
 func (s *IrrigationService) ScheduleIrrigation(ctx context.Context, zoneID uint, volume float64, when time.Time) (*model.IrrigationPlan, error) {
 	zone, err := s.GetZoneByID(ctx, zoneID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("schedule irrigation: %v", err)
 	}
 	if !zone.Active {
 		return nil, ErrZoneNotFound
@@ -80,13 +83,22 @@ func (s *IrrigationService) RecordReading(ctx context.Context, zoneID uint, mois
 	if err := s.db.WithContext(ctx).Create(reading).Error; err != nil {
 		return nil, err
 	}
+	s.latestReadings[zoneID] = reading
 	return reading, nil
+}
+
+// GetLatestReading 获取区域最新读数
+func (s *IrrigationService) GetLatestReading(zoneID uint) *model.SensorReading {
+	return s.latestReadings[zoneID]
 }
 
 // ExecuteIrrigation 执行灌溉
 func (s *IrrigationService) ExecuteIrrigation(ctx context.Context, planID uint) error {
 	var plan model.IrrigationPlan
 	if err := s.db.WithContext(ctx).First(&plan, planID).Error; err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
 		return err
 	}
 	plan.Status = "completed"
