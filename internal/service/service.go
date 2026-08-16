@@ -22,6 +22,8 @@ type IrrigationService struct {
 	// 区域最新读数缓存（zoneID -> reading）
 	latestReadings map[uint]*model.SensorReading
 	mu             sync.RWMutex
+	// 计划缓存
+	plansCache []model.IrrigationPlan
 }
 
 func NewIrrigationService(db *gorm.DB) *IrrigationService {
@@ -67,11 +69,14 @@ func (s *IrrigationService) ScheduleIrrigation(ctx context.Context, zoneID uint,
 
 // ListPlans 列出灌溉计划
 func (s *IrrigationService) ListPlans(ctx context.Context, zoneID uint) ([]model.IrrigationPlan, error) {
-	var plans []model.IrrigationPlan
-	if err := s.db.WithContext(ctx).Where("zone_id = ?", zoneID).Find(&plans).Error; err != nil {
-		return nil, err
+	if s.plansCache == nil {
+		var plans []model.IrrigationPlan
+		if err := s.db.WithContext(ctx).Where("zone_id = ?", zoneID).Find(&plans).Error; err != nil {
+			return nil, err
+		}
+		s.plansCache = plans
 	}
-	return plans, nil
+	return s.plansCache, nil
 }
 
 // RecordReading 记录传感器读数
