@@ -45,7 +45,7 @@ func (s *IrrigationService) GetZoneByID(ctx context.Context, id uint) (*model.Zo
 func (s *IrrigationService) ScheduleIrrigation(ctx context.Context, zoneID uint, volume float64, when time.Time) (*model.IrrigationPlan, error) {
 	zone, err := s.GetZoneByID(ctx, zoneID)
 	if err != nil {
-		return nil, fmt.Errorf("schedule irrigation: %v", err)
+		return nil, fmt.Errorf("schedule irrigation: %w", err)
 	}
 	if !zone.Active {
 		return nil, ErrZoneNotFound
@@ -76,6 +76,9 @@ func (s *IrrigationService) ListPlans(ctx context.Context, zoneID uint) ([]model
 
 // RecordReading 记录传感器读数
 func (s *IrrigationService) RecordReading(ctx context.Context, zoneID uint, moist, temp float64) (*model.SensorReading, error) {
+	if _, err := s.GetZoneByID(ctx, zoneID); err != nil {
+		return nil, err
+	}
 	reading := &model.SensorReading{
 		ZoneID:    zoneID,
 		SoilMoist: moist,

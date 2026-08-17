@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"green-irrig/internal/service"
 )
 
@@ -42,7 +44,14 @@ func (h *IrrigationHandler) ScheduleIrrigation(c *gin.Context) {
 	when := time.Now().Add(time.Duration(req.Hours) * time.Hour)
 	plan, err := h.svc.ScheduleIrrigation(c.Request.Context(), uint(zoneID), req.Volume, when)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, service.ErrZoneNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrInvalidVolume):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, plan)
@@ -78,6 +87,10 @@ func (h *IrrigationHandler) RecordReading(c *gin.Context) {
 	}
 	reading, err := h.svc.RecordReading(c.Request.Context(), uint(zoneID), req.SoilMoist, req.TempC)
 	if err != nil {
+		if errors.Is(err, service.ErrZoneNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -91,6 +104,10 @@ func (h *IrrigationHandler) ExecuteIrrigation(c *gin.Context) {
 		return
 	}
 	if err := h.svc.ExecuteIrrigation(c.Request.Context(), uint(planID)); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
