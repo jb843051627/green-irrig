@@ -12,3 +12,7 @@
 # IDE
 .idea/
 .vscode/
+
+# SQLite runtime
+*.db
+*.db-*
