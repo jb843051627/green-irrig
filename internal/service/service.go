@@ -47,6 +47,9 @@ func (s *IrrigationService) ScheduleIrrigation(ctx context.Context, zoneID uint,
 	if err != nil {
 		return nil, fmt.Errorf("schedule irrigation: %w", err)
 	}
+	if zone == nil {
+		return nil, ErrZoneNotFound
+	}
 	if !zone.Active {
 		return nil, ErrZoneNotFound
 	}
