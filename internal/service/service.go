@@ -76,7 +76,10 @@ func (s *IrrigationService) ListPlans(ctx context.Context, zoneID uint) ([]model
 		}
 		s.plansCache = plans
 	}
-	return s.plansCache, nil
+	// 返回切片副本，避免调用方修改元素影响内部缓存
+	out := make([]model.IrrigationPlan, len(s.plansCache))
+	copy(out, s.plansCache)
+	return out, nil
 }
 
 // RecordReading 记录传感器读数
