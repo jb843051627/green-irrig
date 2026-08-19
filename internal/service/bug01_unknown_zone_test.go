@@ -13,13 +13,14 @@ import (
 	"green-irrig/internal/model"
 )
 
-// newTestService 鍒涘缓鐙珛涓存椂鏂囦欢搴撶殑娴嬭瘯鏈嶅姟锛堥伩鍏?-count=N 杩唬闂村叡浜唴瀛樺簱娈嬬暀鏁版嵁锛?func newTestService(t *testing.T) *IrrigationService {
+// newTestService 创建独立临时文件库的测试服务（避免 -count=N 迭代间共享内存库残留数据）
+func newTestService(t *testing.T) *IrrigationService {
 	t.Helper()
 	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "test.db")), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	// Windows 涓婃枃浠跺彞鏌勪笉鍏充細瀵艰嚧 TempDir 娓呯悊澶辫触
+	// Windows 上文件句柄不关会导致 TempDir 清理失败
 	t.Cleanup(func() {
 		sqlDB, err := db.DB()
 		if err == nil {
@@ -32,7 +33,7 @@ import (
 	return NewIrrigationService(db)
 }
 
-// 瀵逛笉瀛樺湪鐨勫尯鍩熻皟搴︾亴婧夛細涓嶅簲 panic锛屽簲杩斿洖 ErrZoneNotFound
+// 对不存在的区域调度灌溉：不应 panic，应返回 ErrZoneNotFound
 func TestBug01_ScheduleIrrigationUnknownZoneNoPanic(t *testing.T) {
 	svc := newTestService(t)
 	defer func() {
